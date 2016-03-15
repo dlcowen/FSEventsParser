@@ -23,81 +23,116 @@
 
 import sys
 import os
-import logging
 import struct
 import binascii
 import gzip
 import re
-import fileinput
 import datetime
-import time
 import sqlite3
+import time
+from time import gmtime, strftime
+from optparse import OptionParser
 
-VERSION = '1.80'
+
+VERSION = '2.0'
 
 EVENTMASK = {
     0x00000000: 'None;',
-    0x00000001: 'MustScanSubDirs;',
-    0x00000002: 'UserDropped;',
-    0x00000004: 'KernelDropped;',
-    0x00000008: 'EventIdsWrapped;',
-    0x00000010: 'HistoryDone;',
-    0x00000020: 'RootChanged;',
-    0x00000040: 'Mount;',
-    0x00000080: 'Unmount;',
-    0x00001000: 'UseCFTypes;',
-    0x00002000: 'NoDefer;',
-    0x00004000: 'WatchRoot;',
-    0x00008000: 'IgnoreSelf;',
-    0x00010000: 'ItemIsFile;',
-    0x00020000: 'ItemIsDir;',
-    0x00040000: 'ItemIsSymlink;',
-    0x01000000: 'ItemCreated;',
-    0x02000000: 'ItemRemoved;',
-    0x04000000: 'ItemInodeMetaMod;',
-    0x08000000: 'ItemRenamed;',
-    0x10000000: 'ItemModified;',
-    0x20000000: 'ItemFinderInfoMod;',
-    0x40000000: 'ItemChangeOwner;',
-    0x80000000: 'ItemXattrMod;'
+    0x00000001: 'FolderEvent;',
+    0x00000002: 'Mount;',
+    0x00000004: 'Unmount;',
+    0x00000020: 'EndOfTransaction;',
+    0x00000800: 'LastHardLinkRemoved;',
+    0x00001000: 'HardLink;',
+    0x00004000: 'SymbolicLink;',
+    0x00008000: 'FileEvent;',
+    0x00010000: 'PermissionChange;',
+    0x00020000: 'ExtendedAttrModified;',
+    0x00040000: 'ExtendedAttrRemoved;',
+    0x00100000: 'DocumentRevisioning;',
+    0x01000000: 'Created;',
+    0x02000000: 'Removed;',
+    0x04000000: 'InodeMetaMod;',
+    0x08000000: 'Renamed;',
+    0x10000000: 'Modified;',
+    0x20000000: 'Exchange;',
+    0x40000000: 'FinderInfoMod;',
+    0x80000000: 'FolderCreated;',
+    0x00000008: 'NOT_USED-0x00000008;',
+    0x00000010: 'NOT_USED-0x00000010;',
+    0x00000040: 'NOT_USED-0x00000040;',
+    0x00000080: 'NOT_USED-0x00000080;',
+    0x00000100: 'NOT_USED-0x00000100;',
+    0x00000200: 'NOT_USED-0x00000200;',
+    0x00000400: 'NOT_USED-0x00000400;',
+    0x00002000: 'NOT_USED-0x00002000;',
+    0x00080000: 'NOT_USED-0x00080000;',
+    0x00200000: 'NOT_USED-0x00200000;',
+    0x00400000: 'NOT_USED-0x00400000;',
+    0x00800000: 'NOT_USED-0x00800000;'
 }
 
-db_filename = 'fsevents.sqlite'
+print '\n=========================================================================='
+print 'FSEParser v', VERSION, ' -- provided by G-C Partners, LLC'
+print 'Run Time: ', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "[UTC]"
+print '==========================================================================\n'
 
-def Main():
-    msg = "FSEvents Parser Python Script, Version %s\
-            \n\nParse FSEvent records from allocated and carved files.\
-            \nOutputs parsed information to a tab delimited txt file and SQLite database.\
-            \nErrors and exceptions are recorded in the exceptions logfile.\
-            \n--------------------------------------\
-            \nCommand Syntax: > python 'FSEParser.py' 'e:\case\exports\path_to_fsevents'\n" % (VERSION)
-    try:
-        fsevents_dir = sys.argv[1]
-    except:
-        # Print welcome message if no fsevents dir given
-        print msg
-        # Exit the script
-        sys.exit(0)
-        
-    # Print welcome message
-    print msg
-    
-    # Create SQLite database and setup transaction
-    createSqliteDB()
-    
+def GetOptions():
+    '''Get needed options for processesing'''
+    usage = "usage: %prog -c CASENAME -s SOURCEDIR -o OUTDIR";
+    options = OptionParser(usage=usage);
+
+    options.add_option("-c",
+                   action="store",
+                   type="string",
+                   dest="casename",
+                   default=True, 
+                   help="The name of the current session, used for naming standards");
+    options.add_option("-s",
+                   action="store",
+                   type="string",
+                   dest="sourcedir",
+                   default=True, 
+                   help="The source directory containing fsevent files to be parsed");
+    options.add_option("-o",
+                   action="store",
+                   type="string",
+                   dest="outdir",
+                   default=True, 
+                   help="The destination directory used to store parsed reports");
+    # Return options to caller #
+    return options;
+
+def ParseOptions():
+        # Get options
+        options = GetOptions()
+        (opts,args) = options.parse_args()
+
+        # The meta will store all information about the arguments passed #
+        meta = {
+            'casename':opts.casename,
+            'sourcedir':opts.sourcedir,
+            'outdir': opts.outdir
+            }
+        # Test arguments passed #
+        if len(sys.argv[1:])==6 and os.path.exists(meta['sourcedir']) and os.path.exists(meta['outdir']):
+            pass
+        else:
+            options.error("Unable to proceed. Check the proper command syntax using -h\n")
+        # Return meta to caller #
+        return meta;
+
+def Main():    
     # Process fsevents
-    FSEventHandler(fsevents_dir)
-
+    FSEventHandler()
     # Commit transaction
     sqlCon.commit()
-    
     # Cleanup
     sqlCon.close()
     
 def EnumerateFlags(flag,flag_mapping):
     # Reset string based flags to null
     str_flag = ''
-    
     # Iterate through flags 
     for i in flag_mapping:
         if (i & flag):
@@ -105,8 +140,10 @@ def EnumerateFlags(flag,flag_mapping):
     return str_flag
 
 class FSEventHandler():
-    def __init__(self,path):
-        self.path = path
+    def __init__(self):
+        self.meta = ParseOptions()
+        createSqliteDB(self)
+        self.path = self.meta['sourcedir']
         self.files = []
         self.pages = []
         self.filename = ''
@@ -118,42 +155,42 @@ class FSEventHandler():
         # Try to open the output files
         try:
             ## Output file for parsed records
-            self.outfile = open('FSEvents-Parsed_Records-tab_delimited.txt','w')      
+            self.outfile = open(os.path.join(self.meta['outdir'],self.meta['casename']+'_FSEvents-Parsed_Records.txt'),'w')      
             ## Output log file for exceptions
-            self.logfile = open('FSEvents-EXCEPTIONS_LOG.txt','w')       
+            self.logfile = open(os.path.join(self.meta['outdir'],self.meta['casename']+'_FSEvents-EXCEPTIONS_LOG.txt'),'w')       
         except:
             # Print error to command prompt if unable to open files
             print "\n---------------ERROR----------------\
             \nOne of the following output files are currently in use by another program.\
-            \n -FSEvents-Parsed_Records.tsv\n -FSEvents-Exception_Log.txt\
-            \nPlease ensure that these files are closed. Then rerun the parser."
-            sys.exit(0)
+            \n -[casename]_FSEvents-Parsed_Records.txt\n -[casename]_FSEvents-EXCEPTIONS_LOG.txt\n\
+            \nPlease ensure that these files are closed.. Then rerun the parser.\n"
+            sys.exit(1)
 
         # Continue to next phase of fsevent parsing
         self._GetFsEventFiles()
-
         
     def _GetFsEventFiles(self):
         '''
         This section will iterate through each file in the fsevents dir provided,
-        It will first open each file, search for an sld header in the file (uncompressed)
-        If no sld header was found, it will then try to unzip the gzip. If it is unable
-        to un-compress the gzip file, it will write an entry in the logfile. If gzip
-        is successful, the script will check for a sld header in the uncompressed gzip.
-        If found, the contents of the gzip will be placed into a buffer and passed to the
-        next phase of processing.
+        and attempt to unzip the gzip. If it is unable to un-compress the gzip file,
+        it will write an entry in the logfile. If gzip is successful, the script will
+        check for a sld header in the uncompressed gzip. If found, the contents of
+        the gzip will be placed into a buffer and passed to the next phase of processing.
         '''
         # Print the header columns to the output file #
-        Output.PrintColumns(self.outfile)                       
+        Output.PrintColumns(self.outfile)
+        # Total number of files in events dir #
+        self.t_files = len(os.listdir(self.path))
         
         #iterate through each file in supplied fsevents dir
         for filename in os.listdir(self.path):
             self.all_files_count+=1
-            print "Trying\t%s" % (filename)
+            print "\nFile %d of %d: \tTrying\t%s" % (self.all_files_count,self.t_files,filename)
             # Create fullpath to source fsevent file
             f_name = os.path.join(self.path,filename)
-            self.filename = filename
-
+            self.filename = f_name
+            self.c_time = datetime.datetime.fromtimestamp((os.path.getctime(self.filename)))
+            self.m_time = datetime.datetime.fromtimestamp((os.path.getmtime(self.filename)))
             try:
                 # try to unzip file then try to read
                 self.files = gzip.GzipFile(f_name,'rb')
@@ -169,7 +206,7 @@ class FSEventHandler():
             chk = FSEventHandler.SLDHeaderSearch(self,buf,f_name)
             # If check for sld returns false, write information to logfile
             if chk is False:
-                self.logfile.write("%s\tError: Unable to find a SLD1 header.\n" % (f_name))
+                self.logfile.write("%s\tError: Unable to find a SLD header.\n" % (f_name))
                 # Continue to the next file in the fsevents directory
                 self.error_file_count+=1
                 continue
@@ -182,12 +219,17 @@ class FSEventHandler():
         # Print stats
         print "\n---------------------\n"
         print "FINISHED PARSING: See exceptions log for parsing errors."
-        print "All Files Attempted: %d\nAll Parsed Files: %d\nFiles with Errors: %d\nTotal Records Parsed: %d" % (self.all_files_count,self.parsed_file_count,self.error_file_count,self.all_records_count)
+        print "All Files Attempted: %d\nAll Parsed Files: %d\nFiles with Errors: %d\nAll Records Parsed: %d" % (
+            self.all_files_count,
+            self.parsed_file_count,
+            self.error_file_count,
+            self.all_records_count
+            )
 
     def SLDHeaderSearch(self,buf,f_name):
         '''
-        This will take the entire uncompressed fsevents file and
-        search for every occurance of the SLD1 page header.
+        Search within the uncompressed fsevents file and
+        for every occurance of the SLD page header.
         There can be more than one SLD header in an fsevents file.
         The start and end offsets are stored and used for parsing
         the records contained within each SLD page.
@@ -231,6 +273,11 @@ class FSEventHandler():
 
         # If the search does not find a valid sld header, write exception to logfile
         if sld_count==0:
+            self.logfile.write(
+                "%s\tError: does not contain a valid SLD header.\n" % (
+                    f_name
+                    )
+                )
             # Return false to caller so that the next file will be searched
             return False
         # Return true so that the SLDs found can be parsed
@@ -238,15 +285,17 @@ class FSEventHandler():
     
     def FindDate(self,raw_file):
         '''
-        Search within current file and find ASL log files that contain date.
-        The date(s) found in the current file will be assigned to all records parsed.
+        Search within current file for ASL system log files that are created
+        or modified that inherently store the date as a part of its naming
+        standard. The date(s) found in the current fsevent file will be assigned
+        to all records parsed for that file.
         private/var/log/asl/YYYY.MM.DD.????.asl
         '''
         # Reset time_range value to null
         self.time_range = ''
         prev_temp = ''
         
-        # Start searching within fsevent file for asl file matches
+        # Start searching within fsevent file for asl files
         # This search matches not only the asl full path, it also
         # Checks the record flags for that file. If the asl file has
         # a created flag set or modified flag, then it will match
@@ -347,11 +396,7 @@ class FSEventHandler():
         while len_buf > start_offset :
             # Grab the first char
             char = page_buf[start_offset:end_offset].encode('hex')
-            '''
-            The following if statement will test to see if the current
-            char equals 00. 00 Indicated the end of the fullpath for
-            the current record.
-            '''
+            last_char = char
             if char!='00':
                 # Append the current char to the full path for current record
                 filename = filename + char
@@ -361,6 +406,9 @@ class FSEventHandler():
                 # Continue the while loop
                 continue
             elif char=='00':
+                #Account for 0d at the end of path
+                if last_char=='0d':
+                    filename = filename[:-2]
                 # When 00 is found, then this is the end of fullpath
                 # Increment the offsets by 13, this will be the start of next full path
                 start_offset+=13
@@ -377,8 +425,8 @@ class FSEventHandler():
             
             # Account for records that do not have a fullpath
             if record_len==13:
-                # Assign a null value to the path
-                filename = "NULL VALUE"
+                # Assign / as the path
+                filename = "NULL"
             # Increment the current record count by 1
             self.record_count+=1
             self.all_records_count+=1
@@ -397,7 +445,7 @@ class FSEventHandler():
 
             # Pass the raw record for parsing
             try:
-                record = FSEventRecord(raw_record,record_off)
+                record = FSEventRecord(raw_record,record_off,mask_hex)
                 pass
             except:
                 self.logfile.write(
@@ -408,21 +456,22 @@ class FSEventHandler():
             
             # Assign our current records attributes
             attributes = {
-                'record_filename':filename,
-                'record_mask':record.mask,
-                'record_mask_hex':mask_hex,
-                'asl_name_date_stripped':self.time_range,
-                'record_wd':record.wd,
-                'record_number_parse_order':self.record_count,
-                'record_length':record_len,
-                'max_wd_record_number':file_header.fsoffset,
-                'record_end_relative_offset':record.file_offset,
-                'current_page_size':file_header.filesize,
-                'source_fsevents_filesize':self.file_size,
-                'source_fsevents_file':self.filename,
-                'source_fsevents_path':self.path,
-                'file_header-unknown_hex':file_header.unknown_hex,
-                'file_header-unknown_int':file_header.unknown_int
+                'wd':record.wd,
+                'mask_hex':mask_hex,
+                'filename':filename,
+                'mask':record.mask,
+                'record_end_offset':record.file_offset,
+                'source':self.filename,
+                'source_created_time':self.c_time,
+                'source_modified_time':self.m_time,
+                'other_dates':self.time_range
+                #'record_number_parse_order':self.record_count,
+                #'record_length':record_len,
+                #'max_wd_record_number':file_header.fsoffset,
+                #'current_page_size':file_header.filesize,
+                #'source_fsevents_filesize':self.file_size,
+                #'file_header-unknown_hex':file_header.unknown_hex,
+                #'file_header-unknown_int':file_header.unknown_int
             }
             # Valid records will have a non-zero wd val
             if record.wd!=0:
@@ -451,10 +500,10 @@ class FsEventFileHeader():
         self.filename = filename
         # Page header '1SLD'
         self.signature = buf[0:4]
-        # Unknown raw values in SLD1 header
+        # Unknown raw values in SLD header
         self.unknown_raw = buf[4:8]
         # Unknown hex version 
-        self.unknown_hex = "0x"+buf[4:8].encode("hex")
+        self.unknown_hex = buf[4:8].encode("hex")
         # Unknown integer version
         self.unknown_int = struct.unpack("<I", self.unknown_raw)[0]
         # Size of current SLD page
@@ -464,8 +513,6 @@ class FsEventFileHeader():
         regexp = re.compile(r'^.*[\][0-9a-fA-F]{16}$')
         
         # Use the name of allocated fsevents files
-        # This is related to the max event ID before
-        # the OS creates the next fsevent files.
         if regexp.search(filename) is not None:
             self.fsoffset_hex = os.path.basename(self.filename)
             self.fsoffset = int(self.fsoffset_hex,16)
@@ -476,7 +523,7 @@ class FsEventFileHeader():
             self.fsoffset = 0
                    
 class FSEventRecord(dict):
-    def __init__(self,buf,offset):
+    def __init__(self,buf,offset,mask_hex):
         # Offset of the record within the fsevent file
         self.file_offset = offset
         # Raw record hex version
@@ -493,21 +540,22 @@ class FSEventRecord(dict):
             
 class Output(dict):
     COLUMNS = [
-        'record_filename',
-        'record_mask',
-        'record_mask_hex',
-        'asl_name_date_stripped',
-        'record_wd',
-        'record_number_parse_order',
-        'record_length',
-        'max_wd_record_number',
-        'record_end_relative_offset',
-        'current_page_size',
-        'source_fsevents_filesize',
-        'source_fsevents_file',
-        'source_fsevents_path',
-        'file_header-unknown_hex',
-        'file_header-unknown_int'
+        'wd',
+        'mask_hex',
+        'filename',
+        'mask',
+        'record_end_offset',
+        'source',
+        'source_created_time',
+        'source_modified_time',
+        'other_dates'
+        #'record_number_parse_order',
+        #'record_length',
+        #'max_wd_record_number',
+        #'current_page_size',
+        #'source_fsevents_filesize',
+        #'file_header-unknown_hex',
+        #'file_header-unknown_int'
     ]
     @staticmethod
     def PrintColumns(outfile):
@@ -524,68 +572,65 @@ class Output(dict):
         
     def Print(self,outfile):
         values = []
+        
         for key in Output.COLUMNS:
             values.append(str(self[key]))
-        
+            
         out = "\t".join(values)
         out = out + "\n"
-        outfile.write(out)       
-        
+        outfile.write(out)
+        # Strip Quotes out of Filename. In testing, a small
+        # Number of files had quotes (") in the name
+        # This affects those entries the fsevents parsed record database only
+        values[2] = values[2].replace("\""," ")
         valsToInsert = "\",\"".join(values)
         valsToInsert = "\"" + valsToInsert + "\""
         
         insertSqliteDB(valsToInsert)
-
-class VolumeHandler():
-    def __init__(self,volume):
-        vfh = open(volume,'rb')
-        vfh.seek(1024 + 16)
-        ts = struct.unpack("<I",vfh.read(4))
-        
-        self.createtime = GetTimeFromHfsp(ts)
         
 def GetTimeFromHfsp(timestamp):
     new_dt = HFSP_EPOCH + datetime.timedelta(seconds=timestamp)
     return new_dt
 
-def createSqliteDB():
+def createSqliteDB(self):
+    db_filename = os.path.join(self.meta['outdir'],self.meta['casename']+'_FSEvents-Parsed_Records_DB.sqlite')
     tableSchema = "CREATE TABLE [fsevents](\
-                  [record_filename] [TEXT] NULL,\
-                  [record_mask] [TEXT] NULL,\
-                  [record_mask_hex] [TEXT] NULL,\
-                  [asl_name_date_stripped] [TEXT] NULL,\
-                  [record_wd] [TEXT] NULL,\
-                  [record_number_parse_order] [TEXT] NULL,\
-                  [record_length] [TEXT] NULL,\
-                  [max_wd_record_number] [TEXT] NULL,\
-                  [record_end_relative_offset] [TEXT] NULL,\
-                  [current_page_size] [TEXT] NULL,\
-                  [source_fsevents_filesize] [TEXT]NULL,\
-                  [source_fsevents_file] [TEXT] NULL, \
-                  [source_fsevents_path] [TEXT] NULL, \
-                  [file_header-unknown_hex] [TEXT] NULL,\
-                  [file_header-unknown_int] [TEXT] NULL)"
+                  [wd] [TEXT] NULL,\
+                  [mask_hex] [TEXT] NULL,\
+                  [filename] [TEXT] NULL,\
+                  [mask] [TEXT] NULL,\
+                  [record_end_offset] [TEXT] NULL,\
+                  [source] [TEXT] NULL, \
+                  [source_created_time] [TEXT] NULL, \
+                  [source_modified_time] [TEXT] NULL, \
+                  [other_dates] [TEXT] NULL)"
+                  #[record_number_parse_order] [TEXT] NULL,\
+                  #[record_length] [TEXT] NULL,\
+                  #[max_wd_record_number] [TEXT] NULL,\
+                  #[current_page_size] [TEXT] NULL,\
+                  #[source_fsevents_filesize] [TEXT]NULL,\
+                  #[file_header-unknown_hex] [TEXT] NULL,\
+                  #[file_header-unknown_int] [TEXT] NULL)"
     
     #if database already exists delete it
     try:
         if(os.path.isfile(db_filename)):
             os.remove(db_filename)
-    except WindowsError:
+        #create database file if it doesn't exist
+        db_is_new = not os.path.exists(db_filename)
+    except:
         print "\nFSEvents Parser Python Script, Version %s\n\
         \n-----------ERROR------------\
         \nThe following output file is currently in use by another program.\
-        \n -fsevents.sqlite\
-        \n\nPlease ensure that the file is closed. Then rerun the parser." % (VERSION)
+        \n -%s\
+        \n\nPlease ensure that the file is closed. Then rerun the parser." % (db_filename, VERSION)
         sys.exit(0)
         
-    #create database file if it doesn't exist
-    db_is_new = not os.path.exists(db_filename)
-    
     #setup global
     global sqlCon
 
     #with sqlite3.connect(db_filename) as conn:
-    sqlCon = sqlite3.connect(db_filename)
+    sqlCon = sqlite3.connect(os.path.join("",db_filename))
     
     if db_is_new:
         #Create table if it's a new database
@@ -596,28 +641,29 @@ def createSqliteDB():
         
     #setup transaction cursor and return it
     sqlTran = sqlCon.cursor()
-    
             
 def insertSqliteDB(valsToInsert):
     #with sqlite3.connect(db_filename) as conn:
     insertStatement = "\
         insert into fsevents (\
-        [record_filename],\
-        [record_mask],\
-        [record_mask_hex],\
-        [asl_name_date_stripped],\
-        [record_wd],\
-        [record_number_parse_order],\
-        [record_length],\
-        [max_wd_record_number],\
-        [record_end_relative_offset],\
-        [current_page_size],\
-        [source_fsevents_filesize],\
-        [source_fsevents_file],\
-        [source_fsevents_path],\
-        [file_header-unknown_hex],\
-        [file_header-unknown_int]\
+        [wd],\
+        [mask_hex],\
+        [filename],\
+        [mask],\
+        [record_end_offset],\
+        [source],\
+        [source_created_time],\
+        [source_modified_time],\
+        [other_dates]\
         ) values (" + valsToInsert + ")"
+        #[record_number_parse_order],\
+        #[record_length],\
+        #[max_wd_record_number],\
+        #[current_page_size],\
+        #[source_fsevents_filesize],\
+        #[file_header-unknown_hex],\
+        #[file_header-unknown_int]\
+
     try:
         sqlTran.execute(insertStatement)
     except sqlCon.Error:
