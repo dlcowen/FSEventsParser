@@ -1,9 +1,11 @@
 Overview
 ---------------------
 
-Parse FSEvent records from allocated and carved GZIP files. Outputs parsed information to a tab delimited txt file and a SQLite database. 
+FSEvents files are written to disk by OS X apis and contain historical records of events that occurred for the partition. They are stored in the root of the partition within the directory '/.fseventsd/'. FSEvent files can be found on the OS X system partition and can also be found on external storage devices that were plugged in to a computer running OS X.
 
-Errors and exceptions are recorded in the exceptions logfile.
+FSEventsParser can be used to parse fsevent files from '/.fseventsd/' folder and also from carved GZIP files. 
+
+The parser outputs parsed information to a tab delimited txt file and an SQLite database. Errors and exceptions are recorded in the exceptions logfile.
 
 Usage
 ---------------------
@@ -18,7 +20,7 @@ Usage
     -s SOURCEDIR  The source directory containing fsevent files to be parsed
     -o OUTDIR     The destination directory used to store parsed reports
 
-Output files (located in the directory of the python script after parsing has completed):
+Output files:
 -	[casename]_FSEvents-Parsed_Records_DB.sqlite: SQLite database containing records parsed from FSEvent files.
 -	[casename]_FSEvents-Parsed_Records.txt: Tab delimited text file containing records parsed from FSEvent files.
 -	[casename]_FSEvents-EXCEPTIONS_LOG.txt: Log file containing information related to parsing errors.
@@ -26,10 +28,9 @@ Output files (located in the directory of the python script after parsing has co
 Notes
 ----------------------
 
-Parsed records can be in excess of 1 million records.
-
-Place all FSEvent files and carved GZIP files in the same directory. Then run the script and point it at that directory. The script will not search subdirectories.
-Currently the script does not perform deduplication. When carving for GZIP files, if you carve from allocated, you will experience duplicated records.
+- Parsed records can be in excess of 1 million records.
+- The script does not recursively search subdirectories. All fsevent files including carved gzip must be place in the same directory.
+- Currently the script does not perform deduplication. Duplicate records may occur when carved gzips are also parsed.
 
 
 Ouput Column Reference
