@@ -12,7 +12,7 @@ Usage
 
     FSEParser v 2.1  -- provided by G-C Partners, LLC
     Run Time:  03/15/2016 20:32:44 [UTC]
-    Usage: FSEParser_v2.0_20160315.py -c CASENAME -s SOURCEDIR -o OUTDIR
+    Usage: FSEParser_v2.1.py -c CASENAME -s SOURCEDIR -o OUTDIR
      
     Options:
     -h, --help    show this help message and exit
