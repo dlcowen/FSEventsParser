@@ -10,7 +10,7 @@ The parser outputs parsed information to a tab delimited txt file and an SQLite 
 Usage
 ---------------------
 
-    FSEParser v 2.0  -- provided by G-C Partners, LLC
+    FSEParser v 2.1  -- provided by G-C Partners, LLC
     Run Time:  03/15/2016 20:32:44 [UTC]
     Usage: FSEParser_v2.0_20160315.py -c CASENAME -s SOURCEDIR -o OUTDIR
      
@@ -22,7 +22,7 @@ Usage
 
 Output files:
 -	[casename]_FSEvents-Parsed_Records_DB.sqlite: SQLite database containing records parsed from FSEvent files.
--	[casename]_FSEvents-Parsed_Records.txt: Tab delimited text file containing records parsed from FSEvent files.
+-	[casename]_FSEvents-Parsed_Records.tsv: Tab delimited text file containing records parsed from FSEvent files.
 -	[casename]_FSEvents-EXCEPTIONS_LOG.txt: Log file containing information related to parsing errors.
 
 Notes
@@ -74,11 +74,9 @@ record_end_offset: The end offset of the record within the uncompressed fsevents
 
 source: The name of the FSEvents file that the current record was parsed from.
 
-source_created_time: The source fsevents file created date.
-
 source_modified_time: The source fsevents file modified date.
 
-other_dates: The date(s) that were stripped from the name of an Apple System Log file that was modified/created within an FSEvents file. This value is assigned to all records parsed from an FSEvents file and represents the approximate date that the event took place. If no ASL file was found matching the modified/created criteria, this field will be "UNKNOWN".
+other_dates: The date(s) that were stripped from the name of a Log file that was modified/created within an FSEvents file. This value is assigned to all records parsed from an FSEvents file and represents the approximate date that the event took place. If no ASL file was found matching the modified/created criteria, this field will be "UNKNOWN". Other dates are pulled from: "private/var/log/asl/YYYY.MM.DD.????.asl", "mobile/Library/Logs/CrashReporter/DiagnosticLogs/security.log.YYYYMMDDTHHMMSSZ", and "log/asl/Logs/aslmanager.YYYYMMDDTHHMMSS-??".
 
 
 
