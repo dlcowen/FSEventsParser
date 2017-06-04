@@ -48,28 +48,24 @@ mask: The record's parsed mask flags. Possible values include:
     0x00000001: FolderEvent
     0x00000002: Mount
     0x00000004: Unmount
-    0x00000020: EndOfTransaction*
-    0x00000800: LastHardLinkRemoved*
+    0x00000020: EndOfTransaction
+    0x00000800: LastHardLinkRemoved
     0x00001000: HardLink*
     0x00004000: SymbolicLink
     0x00008000: FileEvent
     0x00010000: PermissionChange
     0x00020000: ExtendedAttrModified
     0x00040000: ExtendedAttrRemoved
-    0x00100000: DocumentRevisioning*
+    0x00100000: DocumentRevisioning
     0x01000000: Created
     0x02000000: Removed
     0x04000000: InodeMetaMod
     0x08000000: Renamed
     0x10000000: Modified
-    0x20000000: Exchange **
-    0x40000000: FinderInfoMod **
-    0x80000000: FolderCreated **
+    0x20000000: Exchange
+    0x40000000: FinderInfoMod
+    0x80000000: FolderCreated
      
-    * EndOfTransaction, LastHardLinkRemoved, HardLink, and DocumentRevisioning are flags not being parsed by other tools as of this writing.
-     
-    ** Exchange, FinderInfoMod, and FolderCreated are flags reported by BlackBag's BlackLight FSEvent parser and have not been validated through our testing.
-
 record_end_offset: The end offset of the record within the uncompressed fsevents file.
 
 source: The name of the FSEvents file that the current record was parsed from.
