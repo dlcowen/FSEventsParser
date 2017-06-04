@@ -36,7 +36,7 @@ Notes
 Ouput Column Reference
 -----------------------
 
-wd: The event ID for the current record that was parsed. The event ID (WD) is assigned to a file in chronological order, as the event occurred.
+event_id: The event ID for the current record that was parsed. The event ID (WD) is assigned to a file in chronological order, as the event occurred.
 
 mask_hex: The hex representation of the record's mask.
 
