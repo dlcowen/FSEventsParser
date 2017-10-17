@@ -240,8 +240,8 @@ class FSEventHandler():
         sld_count = 0
         self.my_slds = []
         
-        # for each search hit that contains '1SLD'
-        for match in re.finditer('\x31\x53\x4c\x44', raw_file):
+        # for each search hit that contains '1SLD or 2SLD'
+        for match in re.finditer('\x31|\x32\x53\x4c\x44', raw_file):
             '''
             For each search hit, store offsets in a dict
             Account for exceptions using following if statements
