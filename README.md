@@ -26,12 +26,12 @@ Usage
     FSEParser v 3.1  -- provided by G-C Partners, LLC
     ==========================================================================
 
-    Usage: FSEParser_V3.1.py -c CASENAME -q REPORT_QUERY_FILE -s SOURCEDIR -o OUTDIR
+    Usage: FSEParser_V3.1.py -c CASENAME -q REPORT_QUERIES -s SOURCEDIR -o OUTDIR
 
     Options:
       -h, --help        show this help message and exit
       -c CASENAME       The name of the current session, used for naming standards
-      -q REPORTQUERIES  The full path to the json file containing custom report
+      -q REPORTQUERIES  The location of the report_queries.json file containing custom report
                         queries to generate targeted reports
       -s SOURCEDIR      The source directory containing fsevent files to be parsed
       -o OUTDIR         The destination directory used to store parsed reports
@@ -39,8 +39,9 @@ Usage
 Notes
 ----------------------
 
+- The report_queries.json file is required to process FSEvents. Use -q to specify the location when running the parser.
 - Parsed records can be in excess of 1 million records.
-- The script does not recursively search subdirectories in the source_dir provided. All fsevent files including carved gzip if any must be place in the same directory.
+- The script does not recursively search subdirectories in the source_dir provided. All FSEvents files including carved gzip if any must be placed in the same directory.
 - Currently the script does not perform deduplication. Duplicate records may occur when carved gzips are also parsed.
 
 
