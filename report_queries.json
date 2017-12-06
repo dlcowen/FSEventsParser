@@ -1,0 +1,44 @@
+{
+	"process_list":	[
+		{
+			"report_name":"UserProfileActivity",
+			"query":"CREATE VIEW UserProfileActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Documents/%' OR fullpath LIKE 'Users/%/Desktop/%' OR fullpath LIKE 'Users/%/Downloads/%' OR fullpath LIKE 'Users/%/Pictures/%' OR fullpath LIKE 'Users/%/Videos/%' OR fullpath LIKE 'Users/%/Music/%';"
+		},
+		{
+			"report_name":"TrashActivity",
+			"query":"CREATE VIEW TrashActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/.Trash%';"
+		},
+		{
+			"report_name":"BrowserActivity",
+			"query":"CREATE VIEW BrowserActivity AS SELECT * FROM fsevents WHERE (fullpath LIKE 'Users/%/Library%' AND (fullpath LIKE '%www.%' OR fullpath LIKE '%http%')) OR fullpath LIKE 'Users/%/Library/%www.%' OR fullpath LIKE 'Users/%/Library/%http%' OR fullpath LIKE 'Users/%/Library/Caches/Metadata/Safari/History/%' OR fullpath LIKE 'Users/%/Library/Application Support/Google/Chrome/Default/Local Storage/%';"
+		},
+		{
+			"report_name":"DownloadsActivity",
+			"query":"CREATE VIEW DownloadsActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Downloads/%' AND fullpath NOT LIKE '%com.apple.nsurlsessiond/Download%';"
+		},
+		{
+			"report_name":"MountActivity",
+			"query":"CREATE VIEW MountActivity AS SELECT * FROM fsevents WHERE mask LIKE '%ount%' OR fullpath like 'Volumes/%' OR fullpath like '/Volumes/%';"
+		},
+		{
+			"report_name":"EmailAttachments",
+			"query":"CREATE VIEW EmailAttachments AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Attachments/%' OR fullpath LIKE 'Users/%/Library/Containers/com.apple.mail/Data/Mail Downloads/%' OR fullpath LIKE 'mobile/Library/Mail/%/Attachments/%';"
+		},
+		{
+			"report_name":"UsersPictureTypeFiles",
+			"query":"CREATE VIEW UsersPictureTypeFiles AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%' AND (fullpath LIKE '%.tif' OR fullpath LIKE '%.tiff' OR fullpath LIKE '%.gif' OR fullpath LIKE '%.jpeg' OR fullpath LIKE '%.jpg' OR fullpath LIKE '%.kdc' OR fullpath LIKE '%.xbm' OR fullpath LIKE '%.jif' OR fullpath LIKE '%.jfif' OR fullpath LIKE '%.bmp' OR fullpath LIKE '%.pcd' OR fullpath LIKE '%.png');"
+		},
+		{
+			"report_name":"UsersDocumentTypeFiles",
+			"query":"CREATE VIEW UsersDocumentTypeFiles AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%' AND (fullpath LIKE '%.pages' OR fullpath LIKE '%.numbers' OR fullpath LIKE '%.keynote' OR fullpath LIKE '%.xls' OR fullpath LIKE '%.xlsx' OR fullpath LIKE '%.ppt' OR fullpath LIKE '%.pptx' OR fullpath LIKE '%.doc' OR fullpath LIKE '%.docx' OR fullpath LIKE '%.pdf');"
+		},
+		{
+			"report_name":"DropBoxActivity",
+			"query":"CREATE VIEW DropBoxActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Dropbox/%';"
+		},
+		{
+			"report_name":"Box_comActivity",
+			"query":"CREATE VIEW Box_comActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Box Sync/%';"
+		}
+	]
+}
