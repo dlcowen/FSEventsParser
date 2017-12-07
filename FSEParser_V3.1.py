@@ -72,9 +72,9 @@ EVENTMASK = {
     0x00800000: 'NOT_USED-0x00800000;'
 }
 
-print('\n==========================================================================' '\n'
-      'FSEParser v', VERSION, ' -- provided by G-C Partners, LLC'
-      '==========================================================================\n')
+print '=========================================================================='
+print 'FSEParser v', VERSION, ' -- provided by G-C Partners, LLC'
+print '=========================================================================='
 
 
 def get_options():
@@ -125,15 +125,16 @@ def parse_options():
     }
 
     # Test arguments passed #
-    if opts.report_queries:
+    if opts.report_queries is True:
         options.error("Unable to proceed. report_queries.json was not specified using the -q option. \
-            \nThe file can be downloaded from \nhttps://github.com/dlcowen/FSEventsParser/blob/master/report_queries.json \
-            \nThen rerun the script and use the -q option to specify the file's location.\n")
+            The file can be downloaded from \
+            https://github.com/dlcowen/FSEventsParser/blob/master/report_queries.json \
+            Then rerun the script and use the -q option to specify the file's location.")
     if len(sys.argv[1:]) == 8 and os.path.exists(meta['sourcedir']) and os.path.exists(
             meta['outdir']) and os.path.exists(meta['reportqueries']):
         pass
     else:
-        options.error("Unable to proceed. Check the proper command syntax using -h\n")
+        options.error("Unable to proceed. Check the proper command syntax using -h")
     # Return meta to caller #
     return meta
 
@@ -193,7 +194,8 @@ class FSEventHandler:
                 i['report_name']
                 i['query']
         except Exception as e:
-            print('An error occurred while reading the json file. \n%s' % e)
+            print('An error occurred while reading the json file. '
+                  '%s' % e)
             sys.exit(0)
 
         self.path = self.meta['sourcedir']
@@ -234,32 +236,36 @@ class FSEventHandler:
         except Exception as e:
             # print_function error to command prompt if unable to open files
             if 'Permission denied' in e:
-                print("%s\nEnsure that you have permissions to write to file\
-                \nand output file is not in use by another application." % e)
+                print("%s "
+                      "Ensure that you have permissions to write to file\
+                       and output file is not in use by another application." % e)
             else:
-                print e
+                print(e)
             sys.exit(0)
 
         # Begin FSEvent processing
-        print '[STARTED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files\n'
+        print('[STARTED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files')
 
         self.get_fs_event_files()
 
-        print "\n\tSee exceptions log for parsing errors."
-        print "\tAll Files Attempted: %d\n\tAll Parsed Files: %d\n\tFiles with Errors: %d\n\tAll Records Parsed: %d" % (
-            self.all_files_count,
-            self.parsed_file_count,
-            self.error_file_count,
-            self.all_records_count
-        )
-        print '\n[FINISHED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files\n'
-
-        print '\n[STARTED]', strftime("%m/%d/%Y %H:%M", gmtime()), 'UTC', 'Exporting views from database to TSV files\n'
+        print("\tSee exceptions log for parsing errors.")
+        print("\tAll Files Attempted: %d" '\n'
+              "\tAll Parsed Files: %d" '\n'
+              "\tFiles with Errors: %d"'\n'
+              "\tAll Records Parsed: %d"
+              % (
+               self.all_files_count,
+               self.parsed_file_count,
+               self.error_file_count,
+               self.all_records_count
+               ))
+        print('[FINISHED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files')
+        print('[STARTED]', strftime("%m/%d/%Y %H:%M", gmtime()), 'UTC', 'Exporting views from database to TSV files')
 
         # Export report views to output files
         self.export_sql_lite_views()
 
-        print '\n[FINISHED]', strftime("%m/%d/%Y %H:%M", gmtime()), "UTC", 'Exporting views from database to TSV files'
+        print('[FINISHED]', strftime("%m/%d/%Y %H:%M", gmtime()), "UTC", 'Exporting views from database to TSV files')
 
         # Close output files
         self.l_all_fsevents.close()
@@ -288,9 +294,9 @@ class FSEventHandler:
         the gzip will be placed into a buffer and passed to the next phase of processing.
         """
         # print_function the header columns to the output files
-        Output.PrintColumns(self.l_all_fsevents)
+        Output.print_columns(self.l_all_fsevents)
         for i in self.r_queries['process_list']:
-            Output.PrintColumns(getattr(self, 'l_' + i['report_name']))
+            Output.print_columns(getattr(self, 'l_' + i['report_name']))
 
         # Total number of files in events dir #
         self.t_files = len(os.listdir(self.path))
@@ -355,12 +361,12 @@ class FSEventHandler:
             except Exception as e:
                 # When permission denied is encountered
                 if "Permission denied" in e:
-                    print "\n%s" % e
+                    print("%s" % e)
                     sys.exit(0)
                 # Otherwise write error to log file
                 else:
                     self.logfile.write(
-                        "%s\tError: %s\n" % (
+                        "%s\tError: %s" % (
                             self.src_filename,
                             e
                         )
@@ -712,7 +718,7 @@ class FSEventHandler:
             )
         except:
             self.logfile.write(
-                "%s\tError: Unable to parse file header at offset %d\n" % (
+                "%s\tError: Unable to parse file header at offset %d" % (
                     self.src_filename,
                     page_start_off
                 )
@@ -944,7 +950,7 @@ class FSEventHandler:
 
         # Export report views to tsv files
         for i in view_names:
-            print "\tExporting table %s from database" % (i[0])
+            print("\tExporting table %s from database" % (i[0]))
             query = "SELECT * FROM %s ORDER BY %s.id ASC" % (i[0], i[0])
             sqlTran.execute(query)
             rows = sqlTran.fetchall()
@@ -958,7 +964,7 @@ class FSEventHandler:
                 for cell in r:
                     values.append(cell)
                 row = u'\t'.join(values)
-                row = row + u'\n'
+                row = row
                 out_file.write(row.encode('utf-8'))
 
 
@@ -1012,12 +1018,11 @@ class Output(dict):
     ]
 
     @staticmethod
-    def PrintColumns(outfile):
+    def print_columns(outfile):
         values = []
         for key in Output.COLUMNS:
             values.append(str(key))
         row = "\t".join(values)
-        row = row + "\n"
         outfile.write(row)
 
     def __init__(self, attribs):
@@ -1031,7 +1036,6 @@ class Output(dict):
             values.append(str(self[key]))
 
         out = "\t".join(values)
-        out = out + "\n"
 
         # Write current row to outfile
         outfile.write(out)
@@ -1067,11 +1071,11 @@ def create_sql_lite_db(self):
         # create database file if it doesn't exist
         db_is_new = not os.path.exists(db_filename)
     except:
-        print("\nFSEvents Parser Python Script, Version %s\n\
-        \n-----------ERROR------------\
-        \nThe following output file is currently in use by another program.\
-        \n -%s\
-        \n\nPlease ensure that the file is closed. Then rerun the parser." % (VERSION, db_filename))
+        print("FSEvents Parser Python Script, Version %s \
+        -----------ERROR------------\
+        The following output file is currently in use by another program.\
+        -%s\
+        Please ensure that the file is closed. Then rerun the parser." % (VERSION, db_filename))
         sys.exit(0)
 
     # setup global
@@ -1121,7 +1125,7 @@ def insert_sqlite_db(vals_to_insert):
     try:
         sqlTran.execute(insert_statement)
     except Exception as e:
-        print "insert failed!: %s" % vals_to_insert
+        print("insert failed!: %s" % vals_to_insert)
 
 
 if __name__ == '__main__':
