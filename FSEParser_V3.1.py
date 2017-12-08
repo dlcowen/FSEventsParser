@@ -28,8 +28,12 @@ import gzip
 import re
 import datetime
 import sqlite3
+try:
+    import ujson
+except ImportError as no_package:
+    print("If you want faster processing install the ujson package")
+    import json as ujson
 import json
-import ujson
 from time import gmtime, strftime
 from optparse import OptionParser
 import contextlib
@@ -72,9 +76,9 @@ EVENTMASK = {
     0x00800000: 'NOT_USED-0x00800000;'
 }
 
-print '=========================================================================='
-print 'FSEParser v', VERSION, ' -- provided by G-C Partners, LLC'
-print '=========================================================================='
+print('=========================================================================='
+      'FSEParser v', 'VERSION', ' -- provided by G-C Partners, LLC'
+      '==========================================================================')
 
 
 def get_options():
