@@ -31,7 +31,7 @@ import sqlite3
 try:
     import ujson
 except ImportError as no_package:
-    print("If you want faster processing install the ujson package")
+    print "If you want faster processing install the ujson package"
     import json as ujson
 import json
 from time import gmtime, strftime
@@ -76,9 +76,9 @@ EVENTMASK = {
     0x00800000: 'NOT_USED-0x00800000;'
 }
 
-print('=========================================================================='
-      'FSEParser v', 'VERSION', ' -- provided by G-C Partners, LLC'
-      '==========================================================================')
+print ('==========================================================================\n'
+'FSEParser v %s -- provided by G-C Partners, LLC\n'
+'==========================================================================') % VERSION
 
 
 def get_options():
@@ -198,8 +198,7 @@ class FSEventHandler:
                 i['report_name']
                 i['query']
         except Exception as e:
-            print('An error occurred while reading the json file. '
-                  '%s' % e)
+            print 'An error occurred while reading the json file. %s' % e
             sys.exit(0)
 
         self.path = self.meta['sourcedir']
@@ -240,20 +239,20 @@ class FSEventHandler:
         except Exception as e:
             # print_function error to command prompt if unable to open files
             if 'Permission denied' in e:
-                print("%s "
-                      "Ensure that you have permissions to write to file\
-                       and output file is not in use by another application." % e)
+                print ("%s "
+                "Ensure that you have permissions to write to file"
+                "and output file is not in use by another application.") % e
             else:
-                print(e)
+                print e
             sys.exit(0)
 
         # Begin FSEvent processing
-        print('[STARTED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files')
+        print '[STARTED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files'
 
         self.get_fs_event_files()
 
-        print("\tSee exceptions log for parsing errors.")
-        print("\tAll Files Attempted: %d" '\n'
+        print "\n\tSee exceptions log for parsing errors."
+        print ("\tAll Files Attempted: %d" '\n'
               "\tAll Parsed Files: %d" '\n'
               "\tFiles with Errors: %d"'\n'
               "\tAll Records Parsed: %d"
@@ -263,13 +262,13 @@ class FSEventHandler:
                self.error_file_count,
                self.all_records_count
                ))
-        print('[FINISHED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files')
-        print('[STARTED]', strftime("%m/%d/%Y %H:%M", gmtime()), 'UTC', 'Exporting views from database to TSV files')
+        print '[FINISHED]', strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files'
+        print '[STARTED]', strftime("%m/%d/%Y %H:%M", gmtime()), 'UTC', 'Exporting views from database to TSV files'
 
         # Export report views to output files
         self.export_sql_lite_views()
 
-        print('[FINISHED]', strftime("%m/%d/%Y %H:%M", gmtime()), "UTC", 'Exporting views from database to TSV files')
+        print '[FINISHED]', strftime("%m/%d/%Y %H:%M", gmtime()), "UTC", 'Exporting views from database to TSV files'
 
         # Close output files
         self.l_all_fsevents.close()
@@ -365,12 +364,12 @@ class FSEventHandler:
             except Exception as e:
                 # When permission denied is encountered
                 if "Permission denied" in e:
-                    print("%s" % e)
+                    print "%s" % e
                     sys.exit(0)
                 # Otherwise write error to log file
                 else:
                     self.logfile.write(
-                        "%s\tError: %s" % (
+                        "%s\tError: %s\n" % (
                             self.src_filename,
                             e
                         )
@@ -722,7 +721,7 @@ class FSEventHandler:
             )
         except:
             self.logfile.write(
-                "%s\tError: Unable to parse file header at offset %d" % (
+                "%s\tError: Unable to parse file header at offset %d\n" % (
                     self.src_filename,
                     page_start_off
                 )
@@ -954,7 +953,7 @@ class FSEventHandler:
 
         # Export report views to tsv files
         for i in view_names:
-            print("\tExporting table %s from database" % (i[0]))
+            print "\tExporting table %s from database" % (i[0])
             query = "SELECT * FROM %s ORDER BY %s.id ASC" % (i[0], i[0])
             sqlTran.execute(query)
             rows = sqlTran.fetchall()
@@ -968,7 +967,7 @@ class FSEventHandler:
                 for cell in r:
                     values.append(cell)
                 row = u'\t'.join(values)
-                row = row
+                row = row + '\n'
                 out_file.write(row.encode('utf-8'))
 
 
@@ -1027,6 +1026,8 @@ class Output(dict):
         for key in Output.COLUMNS:
             values.append(str(key))
         row = "\t".join(values)
+        # Append new line to end of row
+        row = row + '\n'
         outfile.write(row)
 
     def __init__(self, attribs):
@@ -1040,6 +1041,8 @@ class Output(dict):
             values.append(str(self[key]))
 
         out = "\t".join(values)
+        # Append new line to end of out
+        out = out + '\n'
 
         # Write current row to outfile
         outfile.write(out)
@@ -1075,11 +1078,11 @@ def create_sql_lite_db(self):
         # create database file if it doesn't exist
         db_is_new = not os.path.exists(db_filename)
     except:
-        print("FSEvents Parser Python Script, Version %s \
-        -----------ERROR------------\
-        The following output file is currently in use by another program.\
-        -%s\
-        Please ensure that the file is closed. Then rerun the parser." % (VERSION, db_filename))
+        print ("FSEvents Parser Python Script, Version %s \n"
+        "-----------ERROR------------\n"
+        "The following output file is currently in use by another program.\n"
+        "-%s\n"
+        "Please ensure that the file is closed. Then rerun the parser.") % (VERSION, db_filename)
         sys.exit(0)
 
     # setup global
@@ -1099,7 +1102,7 @@ def create_sql_lite_db(self):
             try:
                 sqlCon.execute(i['query'])
             except Exception as e:
-                print("SQLite error when executing query in json file. %s" % e)
+                print "SQLite error when executing query in json file. %s" % e
                 sys.exit(0)
 
     # setup global
@@ -1129,7 +1132,7 @@ def insert_sqlite_db(vals_to_insert):
     try:
         sqlTran.execute(insert_statement)
     except Exception as e:
-        print("insert failed!: %s" % vals_to_insert)
+        print "insert failed!: %s" % vals_to_insert
 
 
 if __name__ == '__main__':
