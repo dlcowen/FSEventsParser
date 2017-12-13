@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 # FSEvents Parser Python Script
 # ------------------------------------------------------
 # Parse FSEvent records from allocated fsevent files and carved gzip files.
@@ -30,13 +30,11 @@ import datetime
 import sqlite3
 import time
 import json
-import csv, codecs, cStringIO
 from time import gmtime, strftime
 from optparse import OptionParser
 import contextlib
 
-
-VERSION = '3.1'
+VERSION = '3.2'
 
 EVENTMASK = {
     0x00000000: 'None;',
@@ -74,39 +72,38 @@ EVENTMASK = {
     0x00800000: 'NOT_USED-0x00800000;'
 }
 
-print '\n=========================================================================='
-print 'FSEParser v', VERSION, ' -- provided by G-C Partners, LLC'
-print '==========================================================================\n'
+print('\n==========================================================================')
+print('FSEParser v {} -- provided by G-C Partners, LLC'.format(VERSION))
+print('==========================================================================\n')
 
 def GetOptions():
     '''Get needed options for processing'''
-    usage = "usage: %prog -c CASENAME -q REPORT_QUERIES -s SOURCEDIR -o OUTDIR";
+    usage = "usage: %prog -s SOURCEDIR -o OUTDIR [-c CASENAME -q REPORT_QUERIES]";
     options = OptionParser(usage=usage);
-
-    options.add_option("-c",
-                   action="store",
-                   type="string",
-                   dest="casename",
-                   default=True, 
-                   help="The name of the current session, used for naming standards");
-    options.add_option("-q",
-                   action="store",
-                   type="string",
-                   dest="report_queries",
-                   default=True, 
-                   help="The location of the report_queries.json file containing custom report queries to generate targeted reports");
     options.add_option("-s",
                    action="store",
                    type="string",
                    dest="sourcedir",
-                   default=True, 
-                   help="The source directory containing fsevent files to be parsed");
+                   default=False, 
+                   help="REQUIRED. The source directory containing fsevent files to be parsed");
     options.add_option("-o",
                    action="store",
                    type="string",
                    dest="outdir",
-                   default=True, 
-                   help="The destination directory used to store parsed reports");
+                   default=False, 
+                   help="REQUIRED. The destination directory used to store parsed reports");
+    options.add_option("-c",
+                   action="store",
+                   type="string",
+                   dest="casename",
+                   default=False, 
+                   help="OPTIONAL. The name of the current session, used for naming standards. Defaults to 'Report'");
+    options.add_option("-q",
+                   action="store",
+                   type="string",
+                   dest="report_queries",
+                   default=False, 
+                   help="OPTIONAL. The location of the report_queries.json file containing custom report queries to generate targeted reports");
     # Return options to caller #
     return options;
 
@@ -122,17 +119,31 @@ def ParseOptions():
             'sourcedir':opts.sourcedir,
             'outdir': opts.outdir
             }
-
-        # Test arguments passed #
-        if opts.report_queries==True:
-            options.error("Unable to proceed. report_queries.json was not specified using the -q option. \
-            \nThe file can be downloaded from \nhttps://github.com/dlcowen/FSEventsParser/blob/master/report_queries.json \
-            \nThen rerun the script and use the -q option to specify the file's location.\n")
-        if len(sys.argv[1:])==8 and os.path.exists(meta['sourcedir']) and os.path.exists(meta['outdir']) and os.path.exists(meta['reportqueries']):
-            pass
+        # Print help if no options are provided
+        if len(sys.argv[1:]) == 0:
+            options.print_help()
+            sys.exit(1)
+        # Test required arguments
+        if meta['sourcedir']==False or meta['outdir']==False:
+            options.error("Unable to proceed. The following parameters must be provided:\n"
+            "-s SOURCEDIR\n-o OUTDIR")
+        elif not os.path.exists(meta['sourcedir']):
+            options.error("Unable to proceed. %s does not exist.\n" % meta['sourcedir'])
+        elif not os.path.exists(meta['outdir']):
+            options.error("Unable to proceed. %s does not exist.\n" % meta['outdir'])
         else:
-            options.error("Unable to proceed. Check the proper command syntax using -h\n")
-        # Return meta to caller #
+            pass
+        # Test optional arguments
+        if meta['reportqueries']!=False and not os.path.exists(meta['reportqueries']):
+            options.error("Unable to proceed. %s does not exist.\n" % meta['reportqueries'])
+        elif meta['reportqueries']==False:
+            print('Info: No report_queries file specified using -q. Custom SQLite views\nwill not be generated or exported.\n')
+        else:
+            pass
+        if meta['casename']==False:
+            print('Info: No casename specified using -c. Defaulting to "Report".\n')
+            meta['casename'] = 'Report'
+        # Return meta to caller #    
         return meta;
 
 def Main():    
@@ -162,29 +173,33 @@ def progress(count, total):
     '''
     Handles the progress bar in the console.
     '''
-    bar_len = 50
+    bar_len = 45
     filled_len = int(round(bar_len * count / float(total)))
 
     percents = round(100 * count / float(total), 1)
     bar = '=' * filled_len + '.' * (bar_len - filled_len)
 
-    sys.stdout.write('\tFile %i of %i  [%s] %s%s\r' % (count, total, bar, percents, '%' ))
+    sys.stdout.write('  File {} of {}  [{}] {}{}\r'.format(count, total, bar, percents, '%' ))
     sys.stdout.flush() 
 
 class FSEventHandler():
     def __init__(self):
         self.meta = ParseOptions()
-        # Check json file
-        try:
-            # Basic json syntax
-            self.r_queries = json.load(open(self.meta['reportqueries']))
-            # Check to see if required keys are present
-            for i in self.r_queries['process_list']:
-                i['report_name']
-                i['query']
-        except Exception as e:
-            print 'An error occurred while reading the json file. \n%s' % (e)
-            sys.exit(0)
+        if self.meta['reportqueries']!=False:
+            # Check json file
+            try:
+                # Basic json syntax
+                self.r_queries = json.load(open(self.meta['reportqueries']))
+                # Check to see if required keys are present
+                for i in self.r_queries['process_list']:
+                    i['report_name']
+                    i['query']
+            except Exception as e:
+                print('An error occurred while reading the json file. \n{}'.format(str(e)))
+                sys.exit(0)
+        else:
+            # if report queries option was not specified
+            self.r_queries = False
         
         self.path = self.meta['sourcedir']
         
@@ -206,14 +221,17 @@ class FSEventHandler():
             # Try to open ouput files
             self.l_all_fsevents = open(
                 os.path.join(self.meta['outdir'],self.meta['casename']+'_All_FSEVENTS.tsv'),
-                'wb'
+                'w'
                 )       
-            # Try to open custom report query output files
-            for i in self.r_queries['process_list']:
-                setattr(
-                    self,'l_'+i['report_name'],
-                    open(os.path.join(self.meta['outdir'],self.meta['casename']+'_'+i['report_name']+'.tsv'),'wb')
-                    )       
+            # Process report queries output files
+            # if option was specified.
+            if self.r_queries != False:
+                # Try to open custom report query output files
+                for i in self.r_queries['process_list']:
+                    setattr(
+                        self,'l_'+i['report_name'],
+                        open(os.path.join(self.meta['outdir'],self.meta['casename']+'_'+i['report_name']+'.tsv'),'w')
+                        )       
 
             # Output log file for exceptions
             self.logfile = open(
@@ -222,33 +240,33 @@ class FSEventHandler():
                 )       
         except Exception as e:
             # Print error to command prompt if unable to open files
-            if 'Permission denied' in e:
-                print "%s\nEnsure that you have permissions to write to file\
-                \nand output file is not in use by another application." % (e)
+            if 'Permission denied' in str(e):
+                print("{}\nEnsure that you have permissions to write to file"
+                "\nand output file is not in use by another application.\n".format(str(e)))
             else:
-                print e
+                print(e)
             sys.exit(0)
                 
         # Begin FSEvent processing
-        print '[STARTED]',strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC", 'Parsing files\n'
+        print('[STARTED] {} UTC Parsing files.\n'.format(strftime("%m/%d/%Y %H:%M:%S", gmtime())))
         
         self._GetFsEventFiles()
         
-        print "\n\tSee exceptions log for parsing errors."
-        print "\tAll Files Attempted: %d\n\tAll Parsed Files: %d\n\tFiles with Errors: %d\n\tAll Records Parsed: %d" % (
+        print("\n\n  See exceptions log for parsing errors.")
+        print("  All Files Attempted: {}\n  All Parsed Files: {}\n  Files with Errors: {}\n  All Records Parsed: {}\n".format(
             self.all_files_count,
             self.parsed_file_count,
             self.error_file_count,
             self.all_records_count
-            )
-        print '\n[FINISHED]',strftime("%m/%d/%Y %H:%M:%S", gmtime()), "UTC",'Parsing files\n'
+            ))
+        print('[FINISHED] {} UTC Parsing files.\n'.format(strftime("%m/%d/%Y %H:%M:%S", gmtime())))
         
-        print '\n[STARTED]', strftime("%m/%d/%Y %H:%M", gmtime()), 'UTC', 'Exporting views from database to TSV files\n'
-        
-        # Export report views to output files
-        self.exportSQLiteViews()
-        
-        print '\n[FINISHED]',strftime("%m/%d/%Y %H:%M", gmtime()), "UTC", 'Exporting views from database to TSV files'
+        if self.r_queries != False:
+            print('[STARTED] {} UTC Exporting views from database to TSV files.\n'.format(strftime("%m/%d/%Y %H:%M:%S", gmtime())))
+
+            # Export report views to output files
+            self.exportSQLiteViews()
+            print('[FINISHED] {} UTC Exporting views from database to TSV files.\n'.format(strftime("%m/%d/%Y %H:%M:%S", gmtime())))
 
         # Close output files
         self.l_all_fsevents.close()
@@ -278,8 +296,9 @@ class FSEventHandler():
         '''
         # Print the header columns to the output files
         Output.PrintColumns(self.l_all_fsevents)
-        for i in self.r_queries['process_list']:
-            Output.PrintColumns(getattr(self,'l_'+i['report_name']))
+        if self.r_queries != False:
+            for i in self.r_queries['process_list']:
+                Output.PrintColumns(getattr(self,'l_'+i['report_name']))
         
         # Total number of files in events dir #
         self.t_files = len(os.listdir(self.path))
@@ -314,6 +333,10 @@ class FSEventHandler():
         for filename in os.listdir(self.path):
             # Variables
             self.all_files_count+=1
+            
+            # Call the progress bar which shows parsing stats
+            progress(self.all_files_count,self.t_files)
+            
             buf = ""
             
             # Full path to source fsevent file
@@ -343,22 +366,20 @@ class FSEventHandler():
                     
             except Exception as e:
                 # When permission denied is encountered
-                if "Permission denied" in e:
-                    print "\n%s" % (e)
+                if "Permission denied" in str(e):
+                    print("\nEnsure that you have permissions to read from {}"
+                    "\n{}\n".format(self.path, str(e)))
                     sys.exit(0)
                 # Otherwise write error to log file
                 else:
                     self.logfile.write(
                         "%s\tError: %s\n" % (
                             self.src_filename,
-                            e
+                            str(e)
                         )
                     )
                 self.error_file_count+=1
                 continue
-                
-            # Call the progress bar which shows parsing stats
-            progress(self.all_files_count,self.t_files)
             
             # If decompress is success, check for sld headers in the current file
             sld_chk = FSEventHandler.SLDHeaderSearch(self,buf,self.src_fullpath)
@@ -476,7 +497,7 @@ class FSEventHandler():
             elif raw_page[0:4]=="2SLD":
                 self.sldVersion = 2
             else:
-                print "Unknown SLD Version: %s" % (str(raw_page[0:4]))
+                print("Unknown SLD Version: {}\n".format(str(raw_page[0:4])))
                 sys.exit(1)
 
             # Pass the raw page + a start offset to find records within page
@@ -856,7 +877,7 @@ class FSEventHandler():
             # Check for decode errors
             try:
                 fullpath.decode('utf-8')
-            except Exception as e:
+            except:
                 decode_error = True
             
             # If any error exists return false to caller
@@ -932,7 +953,7 @@ class FSEventHandler():
         
         # Export report views to tsv files
         for i in viewNames:
-            print "\tExporting table %s from database" % (i[0])
+            print("\n  Exporting table {} from database".format(i[0]))
             query = "SELECT * FROM %s ORDER BY %s.id ASC" % (i[0],i[0])
             sqlTran.execute(query)
             rows = sqlTran.fetchall()
@@ -1051,11 +1072,9 @@ def createSqliteDB(self):
         #create database file if it doesn't exist
         db_is_new = not os.path.exists(db_filename)
     except:
-        print "\nFSEvents Parser Python Script, Version %s\n\
-        \n-----------ERROR------------\
-        \nThe following output file is currently in use by another program.\
-        \n -%s\
-        \n\nPlease ensure that the file is closed. Then rerun the parser." % (VERSION, db_filename)
+        print("\nThe following output file is currently in use by "
+        "another program.\n -{}\nPlease ensure that the file is closed."
+        " Then rerun the parser.".format(db_filename))
         sys.exit(0)
         
     #setup global
@@ -1067,16 +1086,16 @@ def createSqliteDB(self):
     if db_is_new:
         #Create table if it's a new database
         sqlCon.execute(tableSchema)
-        
-        # run queries in report queries list
-        # to add report database views
-        for i in self.r_queries['process_list']:
-            # Try to execute the query
-            try:
-                sqlCon.execute(i['query'])
-            except Exception as e:
-                print "SQLite error when executing query in json file. %s" % (e)
-                sys.exit(0)
+        if self.r_queries != False:
+            # run queries in report queries list
+            # to add report database views
+            for i in self.r_queries['process_list']:
+                # Try to execute the query
+                try:
+                    sqlCon.execute(i['query'])
+                except Exception as e:
+                    print("SQLite error when executing query in json file. {}".format(str(e)))
+                    sys.exit(0)
 
     #setup global
     global sqlTran
@@ -1103,9 +1122,12 @@ def insertSqliteDB(valsToInsert):
 
     try:
         sqlTran.execute(insertStatement)
-    except Exception as e:
-        print("insert failed!: %s") % (valsToInsert)
+    except:
+        print("insert failed!: {}".format(valsToInsert))
         
 if __name__ == '__main__':
-    Main()
+    if (sys.version_info > (3, 0)):
+        print('\nError: FSEventsParser does not currently support running under Python 3.x. Python 2.7 recommended.\n')
+    else:
+        Main()
     
