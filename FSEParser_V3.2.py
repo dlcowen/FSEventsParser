@@ -395,7 +395,7 @@ class FSEventHandler():
 
             except Exception as exp:
                 # When permission denied is encountered
-                if "Permission denied" in str(exp):
+                if "Permission denied" in str(exp) and not os.path.isdir(self.src_fullpath):
                     print('\nEnsure that you have permissions to read '
                           'from {}\n{}\n'.format(self.path, str(exp)))
                     sys.exit(0)
