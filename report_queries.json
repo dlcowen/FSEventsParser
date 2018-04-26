@@ -39,6 +39,10 @@
 		{
 			"report_name":"Box_comActivity",
 			"query":"CREATE VIEW Box_comActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Box Sync/%';"
+		},
+		{
+			"report_name":"FolderAccess",
+			"query":"CREATE VIEW FolderAccess AS SELECT * FROM fsevents WHERE fullpath LIKE '%.DS_Store';"
 		}
 	]
 }
