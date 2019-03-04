@@ -1,48 +1,99 @@
 {
-	"process_list":	[
-		{
-			"report_name":"UserProfileActivity",
-			"query":"CREATE VIEW UserProfileActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Documents/%' OR fullpath LIKE 'Users/%/Desktop/%' OR fullpath LIKE 'Users/%/Downloads/%' OR fullpath LIKE 'Users/%/Pictures/%' OR fullpath LIKE 'Users/%/Videos/%' OR fullpath LIKE 'Users/%/Music/%';"
-		},
-		{
-			"report_name":"TrashActivity",
-			"query":"CREATE VIEW TrashActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/.Trash%';"
-		},
-		{
-			"report_name":"BrowserActivity",
-			"query":"CREATE VIEW BrowserActivity AS SELECT * FROM fsevents WHERE (fullpath LIKE 'Users/%/Library%' AND (fullpath LIKE '%www.%' OR fullpath LIKE '%http%')) OR fullpath LIKE 'Users/%/Library/%www.%' OR fullpath LIKE 'Users/%/Library/%http%' OR fullpath LIKE 'Users/%/Library/Caches/Metadata/Safari/History/%' OR fullpath LIKE 'Users/%/Library/Application Support/Google/Chrome/Default/Local Storage/%';"
-		},
-		{
-			"report_name":"DownloadsActivity",
-			"query":"CREATE VIEW DownloadsActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Downloads/%' AND fullpath NOT LIKE '%com.apple.nsurlsessiond/Download%';"
-		},
-		{
-			"report_name":"MountActivity",
-			"query":"CREATE VIEW MountActivity AS SELECT * FROM fsevents WHERE mask LIKE '%ount%' OR fullpath like 'Volumes/%' OR fullpath like '/Volumes/%';"
-		},
-		{
-			"report_name":"EmailAttachments",
-			"query":"CREATE VIEW EmailAttachments AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Attachments/%' OR fullpath LIKE 'Users/%/Library/Containers/com.apple.mail/Data/Mail Downloads/%' OR fullpath LIKE 'mobile/Library/Mail/%/Attachments/%';"
-		},
-		{
-			"report_name":"UsersPictureTypeFiles",
-			"query":"CREATE VIEW UsersPictureTypeFiles AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%' AND (fullpath LIKE '%.tif' OR fullpath LIKE '%.tiff' OR fullpath LIKE '%.gif' OR fullpath LIKE '%.jpeg' OR fullpath LIKE '%.jpg' OR fullpath LIKE '%.kdc' OR fullpath LIKE '%.xbm' OR fullpath LIKE '%.jif' OR fullpath LIKE '%.jfif' OR fullpath LIKE '%.bmp' OR fullpath LIKE '%.pcd' OR fullpath LIKE '%.png');"
-		},
-		{
-			"report_name":"UsersDocumentTypeFiles",
-			"query":"CREATE VIEW UsersDocumentTypeFiles AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%' AND (fullpath LIKE '%.pages' OR fullpath LIKE '%.numbers' OR fullpath LIKE '%.keynote' OR fullpath LIKE '%.xls' OR fullpath LIKE '%.xlsx' OR fullpath LIKE '%.ppt' OR fullpath LIKE '%.pptx' OR fullpath LIKE '%.doc' OR fullpath LIKE '%.docx' OR fullpath LIKE '%.pdf');"
-		},
-		{
-			"report_name":"DropBoxActivity",
-			"query":"CREATE VIEW DropBoxActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Dropbox/%';"
-		},
-		{
-			"report_name":"Box_comActivity",
-			"query":"CREATE VIEW Box_comActivity AS SELECT * FROM fsevents WHERE fullpath LIKE 'Users/%/Box Sync/%';"
-		},
-		{
-			"report_name":"FolderAccess",
-			"query":"CREATE VIEW FolderAccess AS SELECT * FROM fsevents WHERE fullpath LIKE '%.DS_Store';"
-		}
-	]
+    "process_list":    [
+        {
+            "report_name":"UserProfileActivity",
+            "description":"All file activity that occurs within the user folders Desktop, Documents, Downloads, Pictures, Videos, and Music.",
+            "query":"CREATE VIEW UserProfileActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%/Documents/%' OR fullpath LIKE '%Users/%/Desktop/%' OR fullpath LIKE '%Users/%/Downloads/%' OR fullpath LIKE '%Users/%/Pictures/%' OR fullpath LIKE '%Users/%/Videos/%' OR fullpath LIKE '%Users/%/Music/%';"
+        },
+        {
+            "report_name":"UsersPictureTypeFiles",
+            "description":"Activity within the folder '/Users/' that has a file extension of a known image type file.",
+            "query":"CREATE VIEW UsersPictureTypeFiles AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%' AND (fullpath LIKE '%.tif' OR fullpath LIKE '%.tiff' OR fullpath LIKE '%.gif' OR fullpath LIKE '%.jpeg' OR fullpath LIKE '%.jpg' OR fullpath LIKE '%.kdc' OR fullpath LIKE '%.xbm' OR fullpath LIKE '%.jif' OR fullpath LIKE '%.jfif' OR fullpath LIKE '%.bmp' OR fullpath LIKE '%.pcd' OR fullpath LIKE '%.png');"
+        },
+        {
+            "report_name":"UsersDocumentTypeFiles",
+            "description":"Events related to Microsoft Office documents, PDFs, .Pages, .keynote, and .numbers files.",
+            "query":"CREATE VIEW UsersDocumentTypeFiles AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%' AND (fullpath LIKE '%.pages' OR fullpath LIKE '%.numbers' OR fullpath LIKE '%.keynote' OR fullpath LIKE '%.xls' OR fullpath LIKE '%.xlsx' OR fullpath LIKE '%.ppt' OR fullpath LIKE '%.pptx' OR fullpath LIKE '%.doc' OR fullpath LIKE '%.docx' OR fullpath LIKE '%.pdf');"
+        },
+        {
+            "report_name":"DownloadsActivity",
+            "description":"File activity that takes place with the User’s Downloads activity.",
+            "query":"CREATE VIEW DownloadsActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%/Downloads/%' AND fullpath NOT LIKE '%com.apple.nsurlsessiond/Download%';"
+        },
+        {
+            "report_name":"TrashActivity",
+            "description":"File activity that occurs within the '/Users/<username>/.Trash' folder. For example, when the user sends files to the Trash or empties the Trash.",
+            "query":"CREATE VIEW TrashActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%/.Trash%';"
+        },
+        {
+            "report_name":"BrowserActivity",
+            "description":"File activity related to web browser usage such as Safari or Chrome. This can reveal the full URL that was visited in a web browser or the domain that was being visited.",
+            "query":"CREATE VIEW BrowserActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE (fullpath LIKE '%Users/%/Library%' AND (fullpath LIKE '%www.%' OR fullpath LIKE '%http%')) OR fullpath LIKE '%Users/%/Library/%www.%' OR fullpath LIKE '%Users/%/Library/%http%' OR fullpath LIKE '%Users/%/Library/Caches/Metadata/Safari/History/%' OR fullpath LIKE '%Users/%/Library/Application Support/Google/Chrome/Default/Local Storage/%';"
+        },
+        {
+            "report_name":"MountActivity",
+            "description":"This will include activity related to mounting and unmounting of DMGs, external devices, network shares, and other mounted volumes.",
+            "query":"CREATE VIEW MountActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE (flags LIKE '%ount%' OR fullpath like 'Volumes/%' OR fullpath like '/Volumes/%') and fullpath NOT LIKE '/Volumes/Preboot/%' and fullpath NOT LIKE '%sparsebundle/%';"
+        },
+        {
+            "report_name":"EmailAttachments",
+            "description":"File activity related to email attachments being cached on disk. This can be used to determine names of email attachments.",
+            "query":"CREATE VIEW EmailAttachments AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%/Attachments/%' OR fullpath LIKE '%Users/%/Library/Containers/com.apple.mail/Data/Mail Downloads/%' OR fullpath LIKE '%mobile/Library/Mail/%/Attachments/%';"
+        },
+        {
+            "report_name":"CloudStorageDropBoxActivity",
+            "description":"Cloud storage activity related to files in the Dropbox folder for the Dropbox app.",
+            "query":"CREATE VIEW CloudStorageDropBoxActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%/Dropbox/%';"
+        },
+        {
+            "report_name":"CloudStorageBoxActivity",
+            "description":"Cloud storage activity related to files in the Box folder for the Box.com app.",
+            "query":"CREATE VIEW CloudStorageBoxActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/%/Box Sync/%';"
+        },
+        {
+            "report_name":"DSStoreActivity",
+            "description":"DS_Store activity related to .DS_Store files which indicates file/folder accesses.",
+            "query":"CREATE VIEW DSStoreActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%.DS_Store';"
+        },
+        {
+            "report_name":"SavedApplicationState",
+            "description":"Indication that a window was open and the application state was saved.",
+            "query":"CREATE VIEW SavedApplicationState AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%/Saved Application State/%windows.plist';"
+        },
+        {
+            "report_name":"RootShellActivity",
+            "description":"Activity related to .sh_history file. This has been observed when the commands ‘sudo su’ or ‘sudo -I’ have been successfully executed. When the shell is closed the .sh_history file is modified.",
+            "query":"CREATE VIEW RootShellActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%.sh_history%';"
+        },
+        {
+            "report_name":"GuestAccountActivity",
+            "description":"Events related to usage of the Guest account. When the Guest account is enabled, users can log in to the Guest account and perform activities as a limited user. Once the user logs out the user data is deleted. These events provide insight into what a user was doing while logged in to the Guest account.",
+            "query":"CREATE VIEW GuestAccountActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%Users/Guest/%';"
+        },
+        {
+            "report_name":"SudoUsageActivity",
+            "description":"Activity related to a user using the sudo command in the terminal app. The name of the file is the user account issuing the sudo command.",
+            "query":"CREATE VIEW SudoUsageActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%private/var/db/sudo/%';"
+        },
+        {
+            "report_name":"BashActivity",
+            "description":"Activity related to .bash_sessions history files. The creating and modification of files with a User’s .bash_sessions folder indicates that commands were being run in the Terminal app.",
+            "query":"CREATE VIEW BashActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE 'Users/%/.bash%';"
+        },
+        {
+            "report_name":"FailedPasswordActivity",
+            "description":"Activity related to failed password attempts. The filename includes the user name that was used. These events indicate failed password attempts. This can be the result of running the su or sudo commands in the terminal and entering an incorrect password, being prompted with a dialog window to enter user credentials and entering an incorrect password, or even remote connection attempts with incorrect passwords.",
+            "query":"CREATE VIEW FailedPasswordActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%rivate/var/db/dslocal/nodes/Default/users/.tmp.%.plist';"
+        },
+        {
+            "report_name":"iCloudSyncronizationActivity",
+            "description":"Activity related to files synced to iCloud. These events can reveal the names of files that have been synced to iCloud from other devices.",
+            "query":"CREATE VIEW iCloudSyncronizationActivity AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%.iCloud' OR fullpath LIKE '%Mobile Documents_com_apple_CloudDocs%';"
+        },
+        {
+            "report_name":"SharedFileLists",
+            "description":"Activity related to Shared File List files (.sfl and .sfl2).",
+            "query":"CREATE VIEW SharedFileLists AS SELECT * FROM fsevents_sorted_by_event_id WHERE fullpath LIKE '%.sfl' OR fullpath LIKE '%.sfl2';"
+        }
+    ]
 }
