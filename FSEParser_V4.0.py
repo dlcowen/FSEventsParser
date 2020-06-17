@@ -982,7 +982,7 @@ class FSEventHandler():
         # parsing stops for the current file
         while len_buf > start_offset and self.valid_record_check:
             # Grab the first char
-            char = page_buf[start_offset:end_offset].encode('hex')
+            char = page_buf[start_offset:end_offset].hex()
 
             if char != '00':
                 # Replace non-printable char with nothing
@@ -1006,7 +1006,7 @@ class FSEventHandler():
                 end_offset += bin_len
 
             # Decode fullpath that was stored as hex
-            fullpath = fullpath.decode('hex').replace('\t', '')
+            fullpath = bytes.fromhex(fullpath).decode("utf-8").replace('\t', '')
             # Store the record length
             record_len = len(fullpath) + bin_len
 
@@ -1023,7 +1023,7 @@ class FSEventHandler():
             raw_record = page_buf[r_start:r_end]
 
             # Strip mask from buffer and encode as hex #
-            mask_hex = "0x" + raw_record[8:12].encode('hex')
+            mask_hex = "0x" + raw_record[8:12].hex()
 
             # Account for carved files when record end offset
             # occurs after the length of the buffer
@@ -1062,7 +1062,7 @@ class FSEventHandler():
                 # Assign our current records attributes
                 attributes = {
                     'id': record.wd,
-                    'id_hex': record.wd_hex + " (" + str(record.wd) + ")",
+                    'id_hex': record.wd_hex.decode("ascii") + " (" + str(record.wd) + ")",
                     'fullpath': fullpath,
                     'filename': f_name,
                     'type': record.mask[0],
@@ -1105,12 +1105,6 @@ class FSEventHandler():
             h_lnk_err_2 = "LastHardLink" in mask[1] and ";Removed" not in mask[1]
             n_used_err = "NOT_USED-0x0" in mask[1]
             ver_error = "ItemCloned" in mask[1] and self.dls_version == 1
-
-            # Check for decode errors
-            try:
-                fullpath.decode('utf-8')
-            except:
-                decode_error = True
 
             # If any error exists return false to caller
             if type_err or \
@@ -1308,7 +1302,8 @@ class FSEventRecord(dict):
         # Record wd or event id
         self.wd = struct.unpack("<Q", buf[0:8])[0]
         # Record wd_hex
-        wd_buf = buf[7] + buf[6] + buf[5] + buf[4] + buf[3] + buf[2] + buf[1] + buf[0]
+        wd_buf = bytearray(buf[0:8])
+        wd_buf.reverse()
         self.wd_hex = binascii.b2a_hex(wd_buf)
         # Enumerate mask flags, string version
         self.mask = enumerate_flags(
