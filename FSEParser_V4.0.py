@@ -718,11 +718,11 @@ class FSEventHandler():
             self.page_offset = start_offset
 
             # Reverse byte stream to match byte order little-endian
-            m_dls_chk = raw_page[3] + raw_page[2] + raw_page[1] + raw_page[0]
+            m_dls_chk = raw_page[0:4]
             # Assign DLS version based off magic header in page
-            if m_dls_chk == "DLS1":
+            if m_dls_chk == b"1SLD":
                 self.dls_version = 1
-            elif m_dls_chk == "DLS2":
+            elif m_dls_chk == b"2SLD":
                 self.dls_version = 2
             else:
                 self.logfile.write("%s: Unknown DLS Version." % (self.src_filename))
