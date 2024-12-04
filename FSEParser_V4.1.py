@@ -6,10 +6,10 @@
 # Outputs parsed information to a tab delimited txt file and SQLite database.
 # Errors and exceptions are recorded in the exceptions logfile.
 
-# Copyright 2019 G-C Partners, LLC
+# Copyright 2024 
 # Nicole Ibrahim
 #
-# G-C Partners licenses this file to you under the Apache License, Version
+# Nicole Ibrahim licenses this file to you under the Apache License, Version
 # 2.0 (the "License"); you may not use this file except in compliance with the
 # License.  You may obtain a copy of the License at:
 #
